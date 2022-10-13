@@ -32,7 +32,7 @@ def adj_masking(true, mask):
 
 def log_like_atoms(a_true, a_pred, length, config):
     a_true = tf.subtract(a_true, 1)
-    one_hot = tf.one_hot(tf.cast(a_true, tf.int64), depth=config['max_atom_num'] + 1)
+    one_hot = tf.one_hot(tf.cast(a_true, tf.int64), depth=config['max_atom_num'] + 2)
 
     loss = tf.math.log(tf.add(a_pred, K.epsilon()))
     loss = tf.multiply(one_hot, loss)

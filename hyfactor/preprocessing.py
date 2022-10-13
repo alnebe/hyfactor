@@ -89,7 +89,7 @@ def graph_to_atoms_numbers(molecule: MoleculeContainer, atom_types: tuple, max_a
     atoms = np.zeros((max_atoms,), dtype=np.int8)
     for n, atom in molecule.atoms():
         atoms[n - 1] = atom_types.index(tuple([atom.atomic_number, atom.charge])) + 1
-    atoms[n] = len(atom_types) + 1
+        atoms[n] = len(atom_types) + 1
     return atoms
 
 

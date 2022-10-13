@@ -37,12 +37,10 @@ def multi_term_calc():
                        tf.expand_dims(tf.cast(tf.math.equal(adjacency_matrix, twos), tf.float32), 1),
                        tf.expand_dims(tf.cast(tf.math.equal(adjacency_matrix, threes), tf.float32), 1)], axis=1)
 
-        diagonal = tf.reduce_sum(tf.cast(tf.math.not_equal(adjacency_matrix, 0), tf.float32), axis=2)
+        diagonal = tf.reduce_sum(tf.cast(tf.math.not_equal(E, 0), tf.float32), axis=2)
         diagonal = tf.math.divide_no_nan(1.0, tf.math.sqrt(diagonal))
 
         D = tf.linalg.diag(diagonal)
-        D = tf.expand_dims(D, 1)
-        D = tf.repeat(D, repeats=3, axis=1)
 
         # Compute D_E_D term
         E_term = tf.matmul(D, tf.matmul(E, D))
@@ -203,9 +201,8 @@ def refactor_encoder(max_atoms, batch_size, max_atomic_num, atom_vector_dim, mol
     e_term = multi_term_calc()(adjacency_matrix)
     expanded_mask = tf.expand_dims(mask, 2)
 
-    masked_atoms = atoms * mask
     emb = Embedding(max_atomic_num + 2, atom_vector_dim,
-                    mask_zero=True, name='embedding_atoms')(masked_atoms)
+                    mask_zero=True, name='embedding_atoms')(atoms)
 
     expanded_mask = tf.cast(expanded_mask, emb.dtype)
     x = tf.multiply(emb, expanded_mask)
@@ -237,14 +234,15 @@ def refactor_decoder(max_atoms, batch_size, max_atom_num, atom_vector_dim, mol_v
     atoms_vectors = K.relu(atoms_vectors)
     atoms_vectors = GRU(atom_vector_dim, return_sequences=True)(atoms_vectors)
 
-    atom_type = Dense(max_atom_num + 1, kernel_initializer='he_normal')(atoms_vectors)
+    atom_type = Dense(max_atom_num + 2, kernel_initializer='he_normal')(atoms_vectors)
     atom_type = K.relu(atom_type)
 
-    atom_type = Dense(max_atom_num + 1, kernel_initializer='he_normal')(atom_type)
+    atom_type = Dense(max_atom_num + 2, kernel_initializer='he_normal')(atom_type)
     atom_type = Activation('softmax', dtype='float32', name='atoms_predictions')(atom_type)
 
-    adj_vectors = Dense(int(atom_vector_dim / 8), kernel_initializer='he_normal')(atoms_vectors)
-    adj_matrix = MultiDefactorization(int(atom_vector_dim / 8))(adj_vectors)
+    adj_vectors = Dense(int(atom_vector_dim), kernel_initializer='he_normal')(atoms_vectors)
+    adj_vectors = K.relu(adj_vectors)
+    adj_matrix = MultiDefactorization(int(atom_vector_dim))(adj_vectors)
 
     return Model(inputs=mol_vectors, outputs=[atom_type, adj_matrix])
 
